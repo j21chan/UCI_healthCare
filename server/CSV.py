@@ -1,12 +1,16 @@
 import csv
 
-def writeCSV(count, data):
+class CSV_file:
+    raw_data = []
+
+
+def writeCSV(count, data, ir_current, red_current):
 
     # Open File cusor
     f = open("sensor/sensorData" + str(count) + ".csv", "w", encoding="utf-8", newline='')
     writer = csv.writer(f, delimiter = ",", quotechar = '"')
 
-    writer.writerow(["time","ir","red","x","y","z"])
+    writer.writerow(["time","ir","red","x","y","z", "ir_current", "red_current"])
 
     # Execute JSON Length
     for temp in data:
@@ -20,7 +24,7 @@ def writeCSV(count, data):
         z = str(temp['z'])
 
         # Write CSV
-        writer.writerow([time, ir, red, x, y, z])
+        writer.writerow([time, ir, red, x, y, z, ir_current, red_current])
 
         # Print Test Data
         # print(time)

@@ -1,9 +1,10 @@
 # Import Library
 from flask import Flask, request
-from datetime import datetime
+import time
 import CSV as csv
 import count as Count
 import current_level as Current
+from flask.templating import render_template
 
 
 # Create App
@@ -29,15 +30,21 @@ def sensorData():
         # Parse JSON Data
         content = request.get_json()
 
-        # Write CSV file
-        csv.writeCSV(Count.count.num, content['samples'])
+        # Write 250 data
+        if Count.count.num % 5 == 0:
 
-        # Decide Current Level of ESP8266 Board
+            # Write CSV file
+            csv.writeCSV(Count.count.num,
+                         csv.CSV_file.raw_data,
+                         Current.current_level.getIrCurrentLevel(),
+                         Current.current_level.getRedCurrentLevel())
 
-        # Method of Decision
+        # Append data list
+        else:
 
-        Current.current_level.setIrCurrentLevel(8)
-        Current.current_level.setRedCurrentLevel(8)
+            # Append sensor data list
+            csv.CSV_file.raw_data.append(content['samples'])
+            print(csv.CSV_file.raw_data)
 
     return "sensorData Test"
 
@@ -55,6 +62,27 @@ def getREDCurrent():
 
     return str(Current.current_level.getRedCurrentLevel())
 
+
+# Request for change current
+@app.route("/changeCurrent", methods = ["POST"])
+def changeCurrent():
+
+    # Read change_ir, change_red
+    change_ir = int(request.form['change_ir'])
+    change_red = int(request.form['change_red'])
+
+    # Decide Current Level of ESP8266 Board
+    Current.current_level.setIrCurrentLevel(change_ir)
+    Current.current_level.setRedCurrentLevel(change_red)
+
+    # log
+    print("changed current " + "ir: " + str(change_ir) + " / red: " + str(change_red))
+
+    return render_template('test.html')
+
+
 # Main
 if __name__ == "__main__":
+
+    # Run App
     app.run(debug=True, host='0.0.0.0', port=8080)

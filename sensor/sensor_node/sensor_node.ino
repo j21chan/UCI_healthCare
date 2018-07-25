@@ -22,7 +22,6 @@
 // JSON definition
 char json_str[25000];
 size_t json_offset = 0;
-
 char currentTime[100];
 
 // SENSOR definition
@@ -30,7 +29,7 @@ int samples_taken = 0;
 
 WiFiClient client;
 
-// MAX30100   
+// MAX30100
 MAX30100 maxSensor;
 uint16_t ir;
 uint16_t red;
@@ -249,7 +248,7 @@ void setupSensor()
 
    // Initialize ADXL362
    xl.begin(chipSelpin);
-   xl.beginMeasure();              // switch adxl362 to measure mode  
+   xl.beginMeasure();              // switch adxl362 to measure mode
 }
 
 // Read All Sensor Data
