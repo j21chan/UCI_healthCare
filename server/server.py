@@ -43,7 +43,11 @@ def sensorData():
         else:
 
             # Append sensor data list
-            csv.CSV_file.raw_data.append(content['samples'])
+            raw_samples = content['samples']
+
+            for sample in raw_samples:
+                csv.CSV_file.raw_data.append(sample)
+
             print(csv.CSV_file.raw_data)
 
     return "sensorData Test"
