@@ -39,6 +39,9 @@ def sensorData():
                          Current.current_level.getIrCurrentLevel(),
                          Current.current_level.getRedCurrentLevel())
 
+            # Initialize
+            csv.CSV_file.raw_data = []
+
         # Append data list
         else:
 
