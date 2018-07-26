@@ -6,16 +6,13 @@ import count as Count
 import current_level as Current
 from flask.templating import render_template
 
-
 # Create App
 app = Flask(__name__)
-
 
 # Get Current Time
 @app.route("/time", methods = ["GET", "POST"])
 def getCurrentTime():
     return str(time.time())
-
 
 # Receive Sensor JSON data
 @app.route("/sensorData", methods = ["POST"])
@@ -31,7 +28,7 @@ def sensorData():
         content = request.get_json()
 
         # Write 250 data
-        if Count.count.num % 5 == 0:
+        if Count.count.num % 15 == 0:
 
             # Write CSV file
             csv.writeCSV(Count.count.num,
@@ -44,14 +41,11 @@ def sensorData():
 
         # Append data list
         else:
-
             # Append sensor data list
             raw_samples = content['samples']
 
             for sample in raw_samples:
                 csv.CSV_file.raw_data.append(sample)
-
-            print(csv.CSV_file.raw_data)
 
     return "sensorData Test"
 
