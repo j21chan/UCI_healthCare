@@ -32,9 +32,7 @@ def sensorData():
 
             # Write CSV file
             csv.writeCSV(Count.count.num,
-                         csv.CSV_file.raw_data,
-                         Current.current_level.getIrCurrentLevel(),
-                         Current.current_level.getRedCurrentLevel())
+                         csv.CSV_file.raw_data)
 
             # Initialize
             csv.CSV_file.raw_data = []

@@ -4,7 +4,7 @@ class CSV_file:
     raw_data = []
 
 
-def writeCSV(count, data, ir_current, red_current):
+def writeCSV(count, data):
 
     # Open File cusor
     f = open("sensor/sensorData" + str(count) + ".csv", "w", encoding="utf-8", newline='')
@@ -22,6 +22,8 @@ def writeCSV(count, data, ir_current, red_current):
         x = str(temp['x'])
         y = str(temp['y'])
         z = str(temp['z'])
+        ir_current = str(temp['ir_c'])
+        red_current = str(temp['red_c'])
 
         # Write CSV
         writer.writerow([time, ir, red, x, y, z, ir_current, red_current])
