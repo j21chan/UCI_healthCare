@@ -229,7 +229,7 @@ void postToServer()
     String payload = http.getString();
 
     // Parse To Int and Set IR_RED_CURRENT
-    nextIRCurrent = (LEDCurrent)(payload.toInt() >> 8);
+    nextIRCurrent = (LEDCurrent)(payload.toInt() >> 4);
     nextRedCurrent = (LEDCurrent)(payload.toInt() | 0x0f);
  
     if(nextIRCurrent != currentIRCurrent || nextRedCurrent != currentRedCurrent) {
