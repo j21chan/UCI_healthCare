@@ -1,25 +1,27 @@
 # Import Library
-from flask import Flask, request
 import time
-import CSV as csv
-import count as Count
-import current_level as Current
+
+from flask import Flask, request
 from flask.templating import render_template
+
+from myCsv import write_csv
+from myCsv import init_csv
+from current_level import current_level as ESP_current
+
 
 # Create App
 app = Flask(__name__)
 
+
 # Get Current Time
 @app.route("/time", methods = ["GET", "POST"])
-def getCurrentTime():
+def get_time():
     return str(time.time())
+
 
 # Receive Sensor JSON data
 @app.route("/sensorData", methods = ["POST"])
-def sensorData():
-
-    # Increase Count
-    Count.count.increase_num()
+def get_sensor_data():
 
     # Execute Only POST
     if request.method == "POST":
@@ -27,37 +29,26 @@ def sensorData():
         # Parse JSON Data
         content = request.get_json()
 
-        # Write 250 data
-        if Count.count.num % 15 == 0:
+        # Read sensor data
+        sensor_data = content['samples']
 
-            # Write CSV file
-            csv.writeCSV(Count.count.num,
-                         csv.CSV_file.raw_data)
+        # Write CSV file
+        write_csv(sensor_data)
 
-            # Initialize
-            csv.CSV_file.raw_data = []
+    return str(ESP_current.get_red_current() << 4 | ESP_current.get_ir_current())
 
-        # Append data list
-        else:
-            # Append sensor data list
-            raw_samples = content['samples']
-
-            for sample in raw_samples:
-                csv.CSV_file.raw_data.append(sample)
-
-    return str(Current.current_level.getIrCurrentLevel() << 4 | CurrentCurrent.current_level.getIrCurrentLevel())
 
 # Request for change current
 @app.route("/changeCurrent", methods = ["POST"])
-def changeCurrent():
+def change_current():
 
     # Read change_ir, change_red
     change_ir = int(request.form['change_ir'])
     change_red = int(request.form['change_red'])
 
     # Decide Current Level of ESP8266 Board
-    Current.current_level.setIrCurrentLevel(change_ir)
-    Current.current_level.setRedCurrentLevel(change_red)
+    ESP_current.set_ir_current(change_ir)
+    ESP_current.set_red_current(change_red)
 
     # log
     print("changed current " + "ir: " + str(change_ir) + " / red: " + str(change_red))
@@ -67,6 +58,9 @@ def changeCurrent():
 
 # Main
 if __name__ == "__main__":
+
+    # Initialize csv file
+    init_csv()
 
     # Run App
     app.run(debug=True, host='0.0.0.0', port=8080)
