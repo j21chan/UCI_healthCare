@@ -11,9 +11,16 @@ def init_csv():
 
     # Open File cusor
     f = open("sensor/sensorData.csv", "w", encoding="utf-8", newline='')
+
+    # create file writer
     writer = csv.writer(f, delimiter = ",", quotechar = '"')
+
+    # init csv file column
     writer.writerow(["time","ir","red","x","y","z", "ir_current", "red_current"])
+
+    # file close
     f.close()
+
     return
 
 
@@ -44,14 +51,6 @@ def write_csv(data):
 
         # Write CSV
         writer.writerow([time, ir, red, x, y, z, ir_current, red_current])
-
-        # Print Test Data
-        # print(time)
-        # print(ir)
-        # print(red)
-        # print(x)
-        # print(y)
-        # print(z)
 
     # Close File cusor
     f.close()
