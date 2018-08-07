@@ -1,6 +1,8 @@
 # Import Library
 import time
 
+from myCsv import write_csv
+from myCsv import init_csv
 from flask import Flask, request
 from flask.templating import render_template
 
@@ -14,7 +16,7 @@ def get_time():
 
 # Receive Sensor JSON data
 @app.route("/sensorData", methods = ["POST"])
-def sensor_data():
+def get_sensor_data():
 
     # Execute Only POST
     if request.method == "POST":
@@ -22,16 +24,11 @@ def sensor_data():
         # Parse JSON Data
         content = request.get_json()
 
+        # Read sensor data
+        sensor_data = content['samples']
+
         # Write CSV file
-        writeCSV()
-
-        # Append data list
-        else:
-            # Append sensor data list
-            raw_samples = content['samples']
-
-            for sample in raw_samples:
-                CSV_file.raw_data.append(sample)
+        write_csv(sensor_data)
 
     return "sensorData Test"
 
@@ -69,6 +66,9 @@ def change_current():
 
 # Main
 if __name__ == "__main__":
+
+    # Initialize csv file
+    init_csv()
 
     # Run App
     app.run(debug=True, host='0.0.0.0', port=8080)

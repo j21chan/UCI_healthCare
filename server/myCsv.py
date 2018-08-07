@@ -21,6 +21,9 @@ def init_csv():
     # file close
     f.close()
 
+    # log
+    print("initialize csv file")
+
     return
 
 
