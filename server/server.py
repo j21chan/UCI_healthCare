@@ -45,22 +45,7 @@ def sensorData():
             for sample in raw_samples:
                 csv.CSV_file.raw_data.append(sample)
 
-    return "sensorData Test"
-
-
-# Changing ESP8266 IR current
-@app.route("/getIRCurrent", methods = ["GET"])
-def getIRCurrent():
-
-    return str(Current.current_level.getIrCurrentLevel())
-
-
-# Changing ESP8266 IR current
-@app.route("/getREDCurrent", methods = ["GET"])
-def getREDCurrent():
-
-    return str(Current.current_level.getRedCurrentLevel())
-
+    return str(Current.current_level.getIrCurrentLevel() << 4 | CurrentCurrent.current_level.getIrCurrentLevel())
 
 # Request for change current
 @app.route("/changeCurrent", methods = ["POST"])
