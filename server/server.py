@@ -47,8 +47,7 @@ def get_ir_current():
 @app.route("/getREDCurrent", methods = ["GET"])
 def get_red_current():
 
-    return str(Current.current_level.getRedCurrentLevel())
-
+    return str(Current.current_level.getIrCurrentLevel() << 4 | CurrentCurrent.current_level.getIrCurrentLevel())
 
 # Request for change current
 @app.route("/changeCurrent", methods = ["POST"])
