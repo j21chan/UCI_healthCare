@@ -1,9 +1,7 @@
 # Import Library
-from flask import Flask, request
 import time
-import CSV as csv
-import count as Count
-import current_level as Current
+
+from flask import Flask, request
 from flask.templating import render_template
 
 # Create App
@@ -11,15 +9,12 @@ app = Flask(__name__)
 
 # Get Current Time
 @app.route("/time", methods = ["GET", "POST"])
-def getCurrentTime():
+def get_time():
     return str(time.time())
 
 # Receive Sensor JSON data
 @app.route("/sensorData", methods = ["POST"])
-def sensorData():
-
-    # Increase Count
-    Count.count.increase_num()
+def sensor_data():
 
     # Execute Only POST
     if request.method == "POST":
@@ -27,15 +22,8 @@ def sensorData():
         # Parse JSON Data
         content = request.get_json()
 
-        # Write 250 data
-        if Count.count.num % 15 == 0:
-
-            # Write CSV file
-            csv.writeCSV(Count.count.num,
-                         csv.CSV_file.raw_data)
-
-            # Initialize
-            csv.CSV_file.raw_data = []
+        # Write CSV file
+        writeCSV()
 
         # Append data list
         else:
@@ -43,28 +31,28 @@ def sensorData():
             raw_samples = content['samples']
 
             for sample in raw_samples:
-                csv.CSV_file.raw_data.append(sample)
+                CSV_file.raw_data.append(sample)
 
     return "sensorData Test"
 
 
 # Changing ESP8266 IR current
 @app.route("/getIRCurrent", methods = ["GET"])
-def getIRCurrent():
+def get_ir_current():
 
     return str(Current.current_level.getIrCurrentLevel())
 
 
 # Changing ESP8266 IR current
 @app.route("/getREDCurrent", methods = ["GET"])
-def getREDCurrent():
+def get_red_current():
 
     return str(Current.current_level.getRedCurrentLevel())
 
 
 # Request for change current
 @app.route("/changeCurrent", methods = ["POST"])
-def changeCurrent():
+def change_current():
 
     # Read change_ir, change_red
     change_ir = int(request.form['change_ir'])
