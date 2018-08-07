@@ -10,19 +10,15 @@
 #include <ADXL362.h>
 #include "MAX30100.h"
 
+#define SAMPLING_RATE MAX30100_SAMPRATE_100HZ
+#define PULSE_WIDTH MAX30100_SPC_PW_1600US_16BITS
+#define HIGHRES_MODE true
 
-#define SAMPLING_RATE                       MAX30100_SAMPRATE_100HZ
-#define IR_LED_CURRENT                      MAX30100_LED_CURR_24MA
-#define RED_LED_CURRENT                     MAX30100_LED_CURR_24MA
-#define PULSE_WIDTH                         MAX30100_SPC_PW_1600US_16BITS
-#define HIGHRES_MODE                        true
-
-#define SAMPLES_PER_POST          250
+#define SAMPLES_PER_POST 300
 
 // JSON definition
-char json_str[25000];
+char json_str[30000];
 size_t json_offset = 0;
-char currentTime[100];
 
 // SENSOR definition
 int samples_taken = 0;
@@ -40,8 +36,10 @@ int16_t temp;
 int16_t XValue, YValue, ZValue, Temperature;
 int16_t chipSelpin = 15;
 
-LEDCurrent RED_LED_CURRENT_CHANGE = MAX30100_LED_CURR_24MA;
-LEDCurrent IR_LED_CURRENT_CHANGE = MAX30100_LED_CURR_24MA;
+LEDCurrent currentRedCurrent = MAX30100_LED_CURR_24MA;
+LEDCurrent currentIRCurrent = MAX30100_LED_CURR_24MA;
+LEDCurrent nextRedCurrent, nextIRCurrent;
+
 void setup()
 {
   // Setting serial
@@ -56,7 +54,8 @@ void setup()
   byte mac[6];
   WiFi.macAddress(mac);
   char MAC_char[18] = "";
-  for (int i = 0; i < sizeof(mac); ++i) {
+  for (int i = 0; i < sizeof(mac); ++i)
+  {
     sprintf(MAC_char, "%s%02x:", MAC_char, mac[i]);
   }
   Serial.print("Mac address: ");
@@ -74,66 +73,54 @@ void setup()
   maxSensor.resetFifo();
 }
 
-
 // ESP8266 loop
 void loop()
 {
-  while(1)
+  maxSensor.fixedUpdate();
+
+  while (readSensorData())
   {
-      maxSensor.update();
-      // maxSensor.resetFifo();
-      while (readSensorData()) {
-      samples_taken++;
-  
-      // Read Current Time
-      // getCurrentTime();
-  
-      updateJsonString();
-      // Create JSON data
-  
-      if (samples_taken >= SAMPLES_PER_POST)
-      {
-        // Post To Server
-        postToServer();
-  
-        // Get Current Level of Board
-        getIRCurrentLevel();
-        getREDCurrentLevel();
-  
-        // Change Current Level of Board
-        changeLEDCurrent();
-  
-        // Reset JSON data
-        resetJsonString();
-  
-        // Reset samples_taken
-        samples_taken = 0;
-  
-        maxSensor.resetFifo();
-      }
+    // Create JSON data
+    updateJsonString();
+
+    samples_taken++;
+
+    if (samples_taken >= SAMPLES_PER_POST)
+    {
+      // Communicate with Server
+      postToServer();
+
+      // Reset JSON data
+      resetJsonString();
+      // Reset samples_taken
+      samples_taken = 0;
     }
   }
-  
 }
 
-/****************
-**WIFI FUNCTION**
-****************/
-
-// Reset JSON String
-void resetJsonString() {
+/*
+* Name: void resetJsonString()
+* Function: Resets JSON buffer
+*/
+void resetJsonString()
+{
   json_offset = 0;
   json_offset += sprintf(json_str, "{\"samples\":[");
 }
 
-void updateJsonString() {
+/*
+* Name: void updateJsonString()
+* Function: Write datas to the JSON buffer
+*/
+void updateJsonString()
+{
   char *json_str_at_offset = &json_str[json_offset];
 
   json_offset += sprintf(json_str_at_offset, "{\"time\":\"%.3lf\",", getCurrentTime());
   json_str_at_offset = &json_str[json_offset];
-  json_offset += sprintf(json_str_at_offset, "\"ir\":%"PRIu16",", ir);
+  json_offset += sprintf(json_str_at_offset, "\"ir\":%" PRIu16 ",", ir);
   json_str_at_offset = &json_str[json_offset];
-  json_offset += sprintf(json_str_at_offset, "\"r\":%"PRIu16",", red);
+  json_offset += sprintf(json_str_at_offset, "\"r\":%" PRIu16 ",", red);
   json_str_at_offset = &json_str[json_offset];
 
   json_offset += sprintf(json_str_at_offset, "\"x\":%d,", XValue);
@@ -142,19 +129,20 @@ void updateJsonString() {
   json_str_at_offset = &json_str[json_offset];
   json_offset += sprintf(json_str_at_offset, "\"z\":%d,", ZValue);
   json_str_at_offset = &json_str[json_offset];
-  json_offset += sprintf(json_str_at_offset, "\"ir_c\":%d, ", RED_LED_CURRENT_CHANGE);
+  json_offset += sprintf(json_str_at_offset, "\"ir_c\":%d, ", currentIRCurrent);
   json_str_at_offset = &json_str[json_offset];
-  json_offset += sprintf(json_str_at_offset, "\"red_c\":%d},", IR_LED_CURRENT_CHANGE);
+  json_offset += sprintf(json_str_at_offset, "\"red_c\":%d},", currentRedCurrent);
 }
 
 void connectToWifi()
 {
   // WiFi begin
-  WiFi.begin("JC-DESKTOP", "99189918");
+  WiFi.begin("HJWIFI", "11181118");
   Serial.print("Connect to wifi");
 
   // Waiting WiFi connection
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
@@ -164,8 +152,10 @@ void connectToWifi()
 void connectToServer()
 {
   // Connect To Server
-  while (!client.connected()) {
-    if (WiFi.status() != WL_CONNECTED) {
+  while (!client.connected())
+  {
+    if (WiFi.status() != WL_CONNECTED)
+    {
       connectToWifi();
     }
     client.connect("192.168.137.1", 8080);
@@ -178,7 +168,8 @@ double getCurrentTime()
 {
   static double serverTime = -1;
   static unsigned long callibrationTime = -1;
-  if (serverTime == -1) {
+  if (serverTime == -1)
+  {
     // Time Stamp URL
     String url = "http://192.168.137.1:8080/time";
     // Check WiFi connection status
@@ -188,7 +179,8 @@ double getCurrentTime()
       http.begin(url);
       int httpCode = http.GET();
 
-      if (httpCode != 200) {
+      if (httpCode != 200)
+      {
         Serial.printf("Response: %d\n", httpCode);
         return -1;
       }
@@ -198,18 +190,22 @@ double getCurrentTime()
 
       callibrationTime = millis();
     }
-    else {
-      Serial.println("WIFI not connected, POST aborted.");
+    else
+    {
+      Serial.println("WIFI not connected, Failed to get current time");
       return -1;
     }
   }
   return serverTime + ((double)millis() - callibrationTime) / 1000.0;
 }
 
-// Post To Server
+/*
+* Name: void postToServer()
+* Function : sends JSON data to server and recieves, adjust LED current
+*/
 void postToServer()
 {
-  // Finalize JSON
+  // Finish JSON
   json_str[json_offset - 1] = ']';
   json_offset += sprintf(json_str + json_offset, "}\0");
 
@@ -228,35 +224,46 @@ void postToServer()
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Connection", "keep-alive");
 
-    http.quickPOST((uint8_t*)json_str, json_offset);
+    http.POST((uint8_t *)json_str, json_offset);
+
+    String payload = http.getString();
+
+    // Parse To Int and Set IR_RED_CURRENT
+    nextIRCurrent = (LEDCurrent)(payload.toInt() >> 8);
+    nextRedCurrent = (LEDCurrent)(payload.toInt() | 0x0f);
+ 
+    if(nextIRCurrent != currentIRCurrent || nextRedCurrent != currentRedCurrent) {
+        maxSensor.setLedsCurrent(nextIRCurrent, nextRedCurrent);
+        currentRedCurrent = nextRedCurrent;
+        currentIRCurrent = nextIRCurrent;
+    }
   }
+  else
+    Serial.println("WIFI not connected, Failed to send data to Server");
 }
 
-// Set Up All Sensor
+// Set Up All Sensor`
 void setupSensor()
 {
   // Initialize MAX30100
-  pinMode(16, OUTPUT);
-  digitalWrite(16, HIGH);
-
   Serial.print("Initializing MAX30100: ");
-  if (!maxSensor.begin()) {
+  if (!maxSensor.begin())
     Serial.println("Failed");
-  }
-  else {
-    Serial.println("Sucess");
-  }
+  else
+    Serial.println("Success");
 
   // MAX30100 Configuration
   maxSensor.setMode(MAX30100_MODE_SPO2_HR);
-  maxSensor.setLedsCurrent(IR_LED_CURRENT, RED_LED_CURRENT);
+  maxSensor.setLedsCurrent(currentIRCurrent, currentRedCurrent);
   maxSensor.setLedsPulseWidth(PULSE_WIDTH);
   maxSensor.setSamplingRate(SAMPLING_RATE);
   maxSensor.setHighresModeEnabled(HIGHRES_MODE);
 
   // Initialize ADXL362
+  pinMode(16, OUTPUT);
+  digitalWrite(16, HIGH);
   xl.begin(chipSelpin);
-  xl.beginMeasure();              // switch adxl362 to measure mode
+  xl.beginMeasure();
 }
 
 // Read All Sensor Data
@@ -265,121 +272,3 @@ bool readSensorData()
   xl.readXYZTData(XValue, YValue, ZValue, Temperature);
   return maxSensor.getRawValues(&ir, &red);
 }
-
-
-// Change IR, RED Current Level
-void changeLEDCurrent()
-{
-  maxSensor.setLedsCurrent(IR_LED_CURRENT_CHANGE, IR_LED_CURRENT_CHANGE);
-}
-
-
-// Get IR Current Level
-void getIRCurrentLevel()
-{
-  // Create IR Current URL
-  String url = "http://192.168.137.1:8080/getIRCurrent";
-  Serial.println(String("GET to ") + url);
-
-
-  // Check WiFi connection status
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    // HTTP Client definition
-    HTTPClient http;
-
-    // HTTP begin
-    http.begin(url);
-
-    // Send the Request
-    int httpCode = http.GET();
-
-    // Store IR current data
-    //String payload = "\"" + http.getString() + "\"";
-    String payload = http.getString();
-
-    // Parse To Int and Set IR_RED_CURRENT
-    IR_LED_CURRENT_CHANGE = (LEDCurrent)payload.toInt();
-    Serial.print("CHANGED IR: ");
-    Serial.println(IR_LED_CURRENT_CHANGE);
-
-    // Print HTTP return code
-    Serial.println("response code: " + String(httpCode));
-
-    // Print request response payload
-    Serial.println("response data: " + payload + "\n\n");
-
-    // Close connection
-    http.end();
-
-    if (httpCode != 200)
-    {
-      Serial.print("HTTP Code for IR Current : ");
-      Serial.println(httpCode);
-      return;
-    }
-
-    return;
-  }
-  else
-  {
-    Serial.println("WIFI not connected, POST aborted.");
-    return;
-  }
-}
-
-
-// Get RED Current Level
-void getREDCurrentLevel()
-{
-  // Create IR Current URL
-  String url = "http://192.168.137.1:8080/getREDCurrent";
-  Serial.println(String("GET to ") + url);
-
-
-  // Check WiFi connection status
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    // HTTP Client definition
-    HTTPClient http;
-
-    // HTTP begin
-    http.begin(url);
-
-    // Send the Request
-    int httpCode = http.GET();
-
-    // Store RED current data
-    //String payload = "\"" + http.getString() + "\"";
-    String payload = http.getString();
-
-    // Parse To Int and Set RED_LED_CURRENT
-    RED_LED_CURRENT_CHANGE = (LEDCurrent)payload.toInt();
-    Serial.print("CHANGED RED: ");
-    Serial.println(RED_LED_CURRENT_CHANGE);
-
-    // Print HTTP return code
-    Serial.println("response code: " + String(httpCode));
-
-    // Print request response payload
-    Serial.println("response data: " + payload + "\n\n");
-
-    // Close connection
-    http.end();
-
-    if (httpCode != 200)
-    {
-      Serial.print("HTTP Code for IR Current : ");
-      Serial.println(httpCode);
-      return;
-    }
-
-    return;
-  }
-  else
-  {
-    Serial.println("WIFI not connected, POST aborted.");
-    return;
-  }
-}
-
