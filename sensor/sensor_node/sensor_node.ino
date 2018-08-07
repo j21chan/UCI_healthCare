@@ -230,7 +230,7 @@ void postToServer()
 
     // Parse To Int and Set IR_RED_CURRENT
     nextIRCurrent = (LEDCurrent)(payload.toInt() >> 4);
-    nextRedCurrent = (LEDCurrent)(payload.toInt() | 0x0f);
+    nextRedCurrent = (LEDCurrent)(payload.toInt() & 0x0f);
  
     if(nextIRCurrent != currentIRCurrent || nextRedCurrent != currentRedCurrent) {
         maxSensor.setLedsCurrent(nextIRCurrent, nextRedCurrent);
